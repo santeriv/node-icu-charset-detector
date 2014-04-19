@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define EXCEPTION(type, message) \
-    ThrowException(v8::Exception::type(v8::String::New(message)))
+    v8::Null()/*ThrowException(v8::Exception::type(v8::String::New(message)))*/
 
 class CharsetMatch : public node::ObjectWrap
 {
@@ -33,25 +33,32 @@ public:
     }
 
     CharsetMatch(const char* bufferData, size_t bufferLength) {
-        UErrorCode icuError = U_ZERO_ERROR;
+        initIcuError_ = U_ZERO_ERROR;
 
-        charsetDetector_ = ucsdet_open(&icuError);
-        if (U_FAILURE(icuError))
-            throw "Failed to open detector";
-
-        // send text
-        ucsdet_setText(charsetDetector_, bufferData, bufferLength, &icuError);
-        if (U_FAILURE(icuError))
-            throw "Failed to set text";
-
-        // detect language
-        charsetMatch_ = ucsdet_detect(charsetDetector_, &icuError);
-        if (U_FAILURE(icuError))
-            throw "Failed to detect charset";
+        charsetDetector_ = ucsdet_open(&initIcuError_);
+        if (U_FAILURE(initIcuError_)) {
+            //throw "Failed to open detector";
+        }
+        else {
+            // send text
+            ucsdet_setText(charsetDetector_, bufferData, bufferLength, &initIcuError_);
+            if (U_FAILURE(initIcuError_)) {
+                //throw "Failed to set text";
+            }
+            else {
+                // detect language
+                charsetMatch_ = ucsdet_detect(charsetDetector_, &initIcuError_);
+                if (U_FAILURE(initIcuError_)) {
+                    //throw "Failed to detect charset";
+                }
+            }
+        }
     }
 
     ~CharsetMatch () {
-        ucsdet_close(charsetDetector_);
+       if(charsetDetector_) {
+           ucsdet_close(charsetDetector_);
+       }
     }
 
     // Internal API
@@ -67,11 +74,11 @@ public:
         if (args.Length() < 1 || !node::Buffer::HasInstance(args[0]))
             return EXCEPTION(TypeError, "Expected Buffer for the argument");
 
-        try {
+//        try {
             CharsetMatch::FromBuffer(args[0]->ToObject())->Wrap(args.This()); // under GC
-        } catch (const char* errorMessage) {
-            return EXCEPTION(Error, errorMessage);
-        }
+//        } catch (const char* errorMessage) {
+//            return EXCEPTION(Error, errorMessage);
+//        }
 
         return args.This();
     }
@@ -81,6 +88,9 @@ private:
     GetName(const v8::Arguments& args) {
         v8::HandleScope scope;
         CharsetMatch* self = node::ObjectWrap::Unwrap<CharsetMatch>(args.This());
+        if (U_FAILURE(self->initIcuError_)) {
+            return EXCEPTION(Error,"InitError");
+        }
         if (!self->charsetMatch_) {
             return scope.Close(v8::Null());
         }
@@ -93,6 +103,9 @@ private:
     GetLanguage(const v8::Arguments& args) {
         v8::HandleScope scope;
         CharsetMatch* self = node::ObjectWrap::Unwrap<CharsetMatch>(args.This());
+        if (U_FAILURE(self->initIcuError_)) {
+            return EXCEPTION(Error,"InitError");
+        }
         if (!self->charsetMatch_) {
             return scope.Close(v8::Null());
         }
@@ -105,6 +118,9 @@ private:
     GetConfidence(const v8::Arguments& args) {
         v8::HandleScope scope;
         CharsetMatch* self = node::ObjectWrap::Unwrap<CharsetMatch>(args.This());
+        if (U_FAILURE(self->initIcuError_)) {
+            return EXCEPTION(Error,"InitError");
+        }
         if (!self->charsetMatch_) {
             return scope.Close(v8::Null());
         }
@@ -115,6 +131,7 @@ private:
 
     UCharsetDetector* charsetDetector_;
     const UCharsetMatch* charsetMatch_;
+    UErrorCode initIcuError_;
 };
 
 extern "C"
