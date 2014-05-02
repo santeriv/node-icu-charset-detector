@@ -4,9 +4,9 @@
       'target_name': 'node-icu-charset-detector',
       'sources': [ 'node-icu-charset-detector.cpp' ],
       'include_dirs': ['./icu/include'],### see ./icu/license.html
-      'cflags': [ '-fno-exceptions', '-D_REENTRANT -L./icu/include -DU_STATIC_IMPLEMENTATION' ],
-      'cflags_cc': [ '-fno-exceptions -DU_STATIC_IMPLEMENTATION' ],
-      'libraries': [ '../icu/lib/libicui18n.a ../icu/lib/libicuuc.a ../icu/lib/libicudata.a -ldl -lm' ],
+      'cflags': [ '-fPIC -fno-exceptions', '-L./icu/include -DU_STATIC_IMPLEMENTATION' ],
+      'cflags_cc': [ '-fPIC -fno-exceptions -DU_STATIC_IMPLEMENTATION' ],
+      'libraries': [ '../icu/lib/libicui18n.a ../icu/lib/libicuuc.a ../icu/lib/libicudata.a' ],
       'conditions': [
         ['OS=="mac"', {
           'include_dirs': [
